@@ -3,367 +3,175 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>IG ANALYTICS [ZIP_CORE]</title>
+    <title>IG ANALYTICS [ULTIMATE_CORE]</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    
     <style>
-        :root {
-            --bg: #000000;
-            --surface: #111111;
-            --surface-2: #1c1c1c;
-            --primary: #c13584; /* IG Gradient Start */
-            --secondary: #f77737; /* IG Gradient End */
-            --accent: #833ab4;
-            --text: #e0e0e0;
-            --danger: #ff3b30;
-            --success: #34c759;
-        }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); padding-bottom: 80px; }
+        :root { --bg: #000; --surface: #111; --primary: #c13584; --text: #e0e0e0; --danger: #ff3b30; --success: #34c759; }
+        body { margin: 0; font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); padding-bottom: 80px; }
+        header { position: sticky; top: 0; z-index: 100; background: rgba(0,0,0,0.9); backdrop-filter: blur(10px); padding: 15px; border-bottom: 1px solid #333; }
+        h1 { margin: 0; font-size: 18px; background: linear-gradient(45deg, #f09433, #dc2743, #bc1888); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         
-        /* HEADER */
-        header { position: sticky; top: 0; z-index: 100; background: rgba(0,0,0,0.9); backdrop-filter: blur(12px); border-bottom: 1px solid #333; padding: 15px 15px 5px 15px; }
-        h1 { margin: 0; font-size: 18px; background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; letter-spacing: -0.5px; }
-        
-        /* UPLOAD ZONE */
-        .upload-zone { margin: 15px 0; position: relative; }
-        .btn-upload { background: var(--surface-2); border: 1px dashed #555; color: #fff; padding: 20px; border-radius: 12px; width: 100%; font-weight: 600; text-align: center; transition: 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
-        .btn-upload:active { background: #222; transform: scale(0.99); }
-        input[type=file] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+        .upload-section { padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .btn-box { background: var(--surface); border: 1px solid #333; padding: 20px; border-radius: 12px; text-align: center; position: relative; overflow: hidden; }
+        .btn-box h3 { margin: 0 0 5px 0; font-size: 14px; }
+        .btn-box p { margin: 0; font-size: 11px; color: #666; }
+        input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 
-        /* SEARCH & TABS */
-        input[type=search] { width: 100%; padding: 12px; background: #000; border: 1px solid #333; color: #fff; border-radius: 8px; font-size: 14px; margin-bottom: 10px; }
-        .tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; -webkit-overflow-scrolling: touch; }
-        .tab { padding: 8px 14px; background: var(--surface-2); border-radius: 18px; font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer; border: 1px solid transparent; }
-        .tab.active { background: var(--text); color: #000; border-color: #fff; }
-
-        /* DASHBOARD */
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; }
-        .card { background: var(--surface); padding: 15px; border-radius: 16px; border: 1px solid #222; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
+        .card { background: var(--surface); padding: 15px; border-radius: 12px; border: 1px solid #222; }
         .card.full { grid-column: span 2; }
-        .stat-val { font-size: 28px; font-weight: 800; color: #fff; letter-spacing: -1px; }
-        .stat-lbl { font-size: 11px; color: #888; text-transform: uppercase; font-weight: 600; margin-bottom: 4px; }
-        .bad { color: var(--danger); }
-        .good { color: var(--success); }
+        .stat-val { font-size: 24px; font-weight: 800; color: #fff; }
+        .stat-lbl { font-size: 11px; color: #888; text-transform: uppercase; }
+        
+        .tabs { display: flex; gap: 10px; overflow-x: auto; padding: 10px 15px; }
+        .tab { padding: 8px 16px; background: #222; border-radius: 20px; font-size: 13px; white-space: nowrap; }
+        .tab.active { background: var(--text); color: #000; }
 
-        /* LISTS */
-        .list-container { padding: 0 15px; }
-        .list-item { padding: 14px 0; border-bottom: 1px solid #222; display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
-        .badge { font-size: 10px; padding: 3px 8px; border-radius: 6px; font-weight: 700; }
-        .b-traitor { background: rgba(255, 59, 48, 0.2); color: var(--danger); }
-        .b-fan { background: rgba(52, 199, 89, 0.2); color: var(--success); }
-        .b-neutral { background: #333; color: #ccc; }
-
-        /* LOADING */
-        #loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 999; text-align: center; padding-top: 40vh; }
-        .spinner { width: 40px; height: 40px; border: 4px solid #333; border-top: 4px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        .progress-text { font-family: monospace; color: var(--secondary); margin-top: 10px; font-size: 12px; }
-        
-        canvas { width: 100% !important; height: 200px !important; }
-        
-        .export-btn { position: fixed; bottom: 20px; right: 20px; background: var(--surface); border: 1px solid #333; color: #fff; width: 50px; height: 50px; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); z-index: 90; }
+        .list-item { padding: 12px 15px; border-bottom: 1px solid #222; display: flex; justify-content: space-between; font-size: 14px; }
+        #loading { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; place-items: center; z-index: 999; text-align: center; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #333; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s infinite; margin-bottom: 10px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-<header>
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <h1>IG ANALYTICS <span style="font-size:10px; opacity:0.5; border:1px solid #555; padding:2px 4px; border-radius:4px;">ZIP EDITION</span></h1>
-    </div>
+<header><h1>IG DATA ANALYZER PRO</h1></header>
 
-    <div class="upload-zone" id="upload-zone">
-        <div class="btn-upload">
-            <span style="font-size: 24px;">📦</span>
-            <span>Toca para subir ZIP</span>
-            <span style="font-size:10px; color:#666">Procesamiento 100% local (iPhone Ready)</span>
-        </div>
+<div id="loading"><div><div class="spinner"></div><div id="status">Procesando...</div></div></div>
+
+<div id="upload-ui" class="upload-section">
+    <div class="btn-box">
+        <h3>📦 SUBIR ARCHIVO .ZIP</h3>
+        <p>Selecciona el ZIP sin descomprimir</p>
         <input type="file" id="zipInput" accept=".zip">
     </div>
-
-    <div id="controls" style="display:none;">
-        <input type="search" id="search" placeholder="🔍 Buscar usuario...">
-        <div class="tabs">
-            <div class="tab active" onclick="switchTab('dash')">Resumen</div>
-            <div class="tab" onclick="switchTab('traitors')">No te siguen</div>
-            <div class="tab" onclick="switchTab('fans')">Fans</div>
-            <div class="tab" onclick="switchTab('chats')">Chats Top</div>
-        </div>
-    </div>
-</header>
-
-<div id="loading-overlay">
-    <div class="spinner"></div>
-    <div style="font-weight:bold; font-size:18px;">DESCOMPRIMIENDO...</div>
-    <div id="progress-log" class="progress-text">Iniciando motor...</div>
-</div>
-
-<div id="view-dash" class="view-section">
-    <div class="grid" id="stats-grid"></div>
-    <div class="card full" style="margin: 0 15px;">
-        <div class="stat-lbl">Actividad Horaria (Mensajes)</div>
-        <canvas id="activityChart"></canvas>
+    <div style="text-align:center; color:#444; font-size:12px;">— O —</div>
+    <div class="btn-box">
+        <h3>📂 SELECCIONAR CARPETA</h3>
+        <p>Si ya lo descomprimiste (iOS Archivos)</p>
+        <input type="file" id="folderInput" webkitdirectory directory multiple>
     </div>
 </div>
 
-<div id="view-traitors" class="view-section list-container" style="display:none"></div>
-<div id="view-fans" class="view-section list-container" style="display:none"></div>
-<div id="view-chats" class="view-section list-container" style="display:none"></div>
+<div id="app" style="display:none;">
+    <div class="tabs">
+        <div class="tab active" onclick="view('dash')">Resumen</div>
+        <div class="tab" onclick="view('traitors')">No te siguen</div>
+        <div class="tab" onclick="view('fans')">Fans</div>
+        <div class="tab" onclick="view('chats')">Ranking Chats</div>
+    </div>
 
-<button class="export-btn" id="btn-export" onclick="exportCSV()">📥</button>
+    <div id="v-dash">
+        <div class="grid" id="stats"></div>
+        <div class="card full" style="margin:0 10px;"><canvas id="chart"></canvas></div>
+    </div>
+    <div id="v-traitors" style="display:none"></div>
+    <div id="v-fans" style="display:none"></div>
+    <div id="v-chats" style="display:none"></div>
+</div>
 
 <script>
-// --- CORE STATE ---
-const STATE = {
-    followers: new Set(),
-    following: new Set(),
-    chatStats: {}, 
-    hourlyActivity: new Array(24).fill(0),
-    filesProcessed: 0,
-    zipFilesCount: 0
+const S = { followers: new Set(), following: new Set(), chats: {}, hours: Array(24).fill(0) };
+const UI = { 
+    zip: document.getElementById('zipInput'), 
+    folder: document.getElementById('folderInput'),
+    app: document.getElementById('app'), 
+    load: document.getElementById('loading'), 
+    status: document.getElementById('status'),
+    ui: document.getElementById('upload-ui')
 };
 
-// --- DOM ELEMENTS ---
-const UI = {
-    zipInput: document.getElementById('zipInput'),
-    uploadZone: document.getElementById('upload-zone'),
-    controls: document.getElementById('controls'),
-    loading: document.getElementById('loading-overlay'),
-    log: document.getElementById('progress-log'),
-    views: {
-        dash: document.getElementById('view-dash'),
-        traitors: document.getElementById('view-traitors'),
-        fans: document.getElementById('view-fans'),
-        chats: document.getElementById('view-chats')
-    },
-    exportBtn: document.getElementById('btn-export')
-};
+// EVENTOS
+UI.zip.addEventListener('change', async e => handleFiles(e.target.files, true));
+UI.folder.addEventListener('change', async e => handleFiles(e.target.files, false));
 
-// --- EVENTS ---
-UI.zipInput.addEventListener('change', handleZipUpload);
-document.getElementById('search').addEventListener('input', (e) => filterList(e.target.value));
+async function handleFiles(files, isZip) {
+    UI.load.style.display = 'grid';
+    resetS();
 
-async function handleZipUpload(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    resetApp();
-    UI.loading.style.display = 'block';
-    UI.log.innerText = "Leyendo estructura del ZIP...";
-
-    try {
-        const zip = await JSZip.loadAsync(file);
-        const files = Object.keys(zip.files).filter(path => path.endsWith('.json'));
-        STATE.zipFilesCount = files.length;
-        
-        let processed = 0;
-        
-        // PROCESAMIENTO POR LOTES PARA NO CRASHEAR LA RAM
-        // Procesamos de 50 en 50 archivos
-        const CHUNK_SIZE = 50;
-        
-        for (let i = 0; i < files.length; i += CHUNK_SIZE) {
-            const chunk = files.slice(i, i + CHUNK_SIZE);
-            await Promise.all(chunk.map(async (path) => {
-                // Filtro rápido: solo leer archivos relevantes para ahorrar tiempo
-                if (!isRelevantFile(path)) return;
-                
-                const content = await zip.file(path).async("string");
-                try {
-                    const json = JSON.parse(content);
-                    analyzeData(json, path);
-                } catch(err) {}
-            }));
-            
-            processed += chunk.length;
-            UI.log.innerText = `Analizando archivos: ${Math.min(processed, files.length)} / ${files.length}`;
-            // Pequeña pausa para dejar respirar a la UI
-            await new Promise(r => setTimeout(r, 10));
+    if (isZip) {
+        const zip = await JSZip.loadAsync(files[0]);
+        const allFiles = Object.keys(zip.files).filter(n => n.endsWith('.json'));
+        for (let path of allFiles) {
+            if (isRelevant(path)) {
+                const txt = await zip.file(path).async('string');
+                processData(JSON.parse(txt), path);
+            }
         }
-
-        finalizeAnalysis();
-
-    } catch (err) {
-        alert("Error: El ZIP parece corrupto o no es de Instagram. " + err);
-        UI.loading.style.display = 'none';
+    } else {
+        for (let file of files) {
+            if (file.name.endsWith('.json') && isRelevant(file.webkitRelativePath)) {
+                const txt = await file.text();
+                processData(JSON.parse(txt), file.webkitRelativePath);
+            }
+        }
     }
+    
+    render();
+    UI.load.style.display = 'none';
+    UI.ui.style.display = 'none';
+    UI.app.style.display = 'block';
 }
 
-function isRelevantFile(path) {
-    // Solo nos interesa procesar estos tipos de archivos
-    return path.includes('followers') || 
-           path.includes('following') || 
-           (path.includes('message') && path.includes('inbox')); 
-}
+function isRelevant(p) { return p.includes('follower') || p.includes('following') || p.includes('message'); }
 
-function analyzeData(json, path) {
-    // 1. Followers
-    if (json.relationships_followers || path.includes('followers')) {
-        const list = json.relationships_followers || json; // Soporte formato viejo/nuevo
-        if (Array.isArray(list)) {
-            list.forEach(u => {
-                try { STATE.followers.add(u.string_list_data[0].value); } catch{}
-            });
-        }
+function processData(data, path) {
+    const isFoll = path.includes('follower');
+    const isFing = path.includes('following');
+
+    if (isFoll || isFing) {
+        // Soporte para formato Meta 2024/2025/2026
+        const list = Array.isArray(data) ? data : (data.relationships_followers || data.relationships_following || []);
+        list.forEach(item => {
+            if (item.string_list_data) {
+                item.string_list_data.forEach(s => {
+                    if(isFoll) S.followers.add(s.value);
+                    if(isFing) S.following.add(s.value);
+                });
+            }
+        });
     }
-    // 2. Following
-    else if (json.relationships_following || path.includes('following')) {
-        const list = json.relationships_following || json;
-        if (Array.isArray(list)) {
-            list.forEach(u => {
-                try { STATE.following.add(u.string_list_data[0].value); } catch{}
-            });
-        }
-    }
-    // 3. Messages
-    else if (json.messages && json.participants) {
-        // Encontrar al "otro" (no tú)
-        // Instagram a veces no dice quién eres tú, asumimos por descarte si hay 2
-        // Pero mejor usamos el sender_name para contar
-        json.messages.forEach(m => {
+
+    if (data.messages) {
+        data.messages.forEach(m => {
             if (m.sender_name) {
-                STATE.chatStats[m.sender_name] = (STATE.chatStats[m.sender_name] || 0) + 1;
-                // Hora
-                if (m.timestamp_ms) {
-                    const h = new Date(m.timestamp_ms).getHours();
-                    STATE.hourlyActivity[h]++;
-                }
+                S.chats[m.sender_name] = (S.chats[m.sender_name] || 0) + 1;
+                if (m.timestamp_ms) S.hours[new Date(m.timestamp_ms).getHours()]++;
             }
         });
     }
 }
 
-function finalizeAnalysis() {
-    UI.loading.style.display = 'none';
-    UI.uploadZone.style.display = 'none';
-    UI.controls.style.display = 'block';
-    UI.exportBtn.style.display = 'flex';
-    
-    renderDashboard();
-    renderLists();
-    renderChart();
-    switchTab('dash');
-}
-
-function renderDashboard() {
-    const traitors = [...STATE.following].filter(x => !STATE.followers.has(x)).length;
-    const fans = [...STATE.followers].filter(x => !STATE.following.has(x)).length;
-    const topTalker = Object.entries(STATE.chatStats).sort((a,b)=>b[1]-a[1])[0];
-
-    document.getElementById('stats-grid').innerHTML = `
-        <div class="card">
-            <div class="stat-lbl">Seguidores</div>
-            <div class="stat-val">${STATE.followers.size}</div>
-        </div>
-        <div class="card">
-            <div class="stat-lbl">Siguiendo</div>
-            <div class="stat-val">${STATE.following.size}</div>
-        </div>
-        <div class="card">
-            <div class="stat-lbl">No te siguen 😡</div>
-            <div class="stat-val bad">${traitors}</div>
-        </div>
-        <div class="card">
-            <div class="stat-lbl">Fans (Tú no sigues)</div>
-            <div class="stat-val good">${fans}</div>
-        </div>
-        <div class="card full">
-            <div class="stat-lbl">Top Contacto</div>
-            <div class="stat-val" style="font-size:22px">${topTalker ? topTalker[0] : '—'}</div>
-            <div class="stat-lbl">${topTalker ? topTalker[1] + ' mensajes' : ''}</div>
-        </div>
+function render() {
+    const t = [...S.following].filter(x => !S.followers.has(x));
+    const f = [...S.followers].filter(x => !S.following.has(x));
+    document.getElementById('stats').innerHTML = `
+        <div class="card"><div class="stat-lbl">Seguidores</div><div class="stat-val">${S.followers.size}</div></div>
+        <div class="card"><div class="stat-lbl">Siguiendo</div><div class="stat-val">${S.following.size}</div></div>
+        <div class="card"><div class="stat-lbl">No devuelven ❌</div><div class="stat-val" style="color:var(--danger)">${t.length}</div></div>
+        <div class="card"><div class="stat-lbl">Fans (Tú no sigues)</div><div class="stat-val" style="color:var(--success)">${f.length}</div></div>
     `;
-}
+    fill('v-traitors', t);
+    fill('v-fans', f);
+    const cSorted = Object.entries(S.chats).sort((a,b)=>b[1]-a[1]).map(([n,c])=>`<div class="list-item"><span>${n}</span><span>${c} msgs</span></div>`).join('');
+    document.getElementById('v-chats').innerHTML = cSorted;
 
-function renderLists() {
-    // Traitors
-    const traitorsList = [...STATE.following].filter(x => !STATE.followers.has(x));
-    UI.views.traitors.innerHTML = traitorsList.map(u => rowHTML(u, 'TRAITOR', 'b-traitor')).join('');
-    
-    // Fans
-    const fansList = [...STATE.followers].filter(x => !STATE.following.has(x));
-    UI.views.fans.innerHTML = fansList.map(u => rowHTML(u, 'FAN', 'b-fan')).join('');
-    
-    // Chats
-    const chatList = Object.entries(STATE.chatStats).sort((a,b) => b[1]-a[1]);
-    UI.views.chats.innerHTML = chatList.map(([u, c], i) => 
-        `<div class="list-item search-item">
-            <span><strong style="color:#666">#${i+1}</strong> ${u}</span>
-            <span class="badge b-neutral">${c} msgs</span>
-         </div>`
-    ).join('');
-}
-
-function rowHTML(name, label, badgeClass) {
-    return `<div class="list-item search-item">
-                <span>${name}</span>
-                <span class="badge ${badgeClass}">${label}</span>
-            </div>`;
-}
-
-function renderChart() {
-    const ctx = document.getElementById('activityChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: [...Array(24).keys()].map(h => h + 'h'),
-            datasets: [{
-                label: 'Actividad',
-                data: STATE.hourlyActivity,
-                backgroundColor: '#c13584',
-                borderRadius: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                x: { ticks: { color: '#666', font:{size:10} }, grid:{display:false} },
-                y: { display: false }
-            }
-        }
+    new Chart(document.getElementById('chart'), {
+        type: 'line',
+        data: { labels: [...Array(24).keys()].map(h=>h+'h'), datasets: [{ label:'Actividad', data: S.hours, borderColor: '#c13584', tension: 0.4 }] },
+        options: { plugins: { legend: false }, scales: { y: { display: false } } }
     });
 }
 
-// --- UTILS ---
-function switchTab(viewId) {
-    document.querySelectorAll('.view-section').forEach(el => el.style.display = 'none');
-    document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
-    
-    UI.views[viewId].style.display = 'block';
-    // Highlight tab logic
-    const idx = ['dash', 'traitors', 'fans', 'chats'].indexOf(viewId);
-    if(idx >=0) document.querySelectorAll('.tab')[idx].classList.add('active');
-}
-
-function filterList(q) {
-    q = q.toLowerCase();
-    document.querySelectorAll('.search-item').forEach(row => {
-        row.style.display = row.innerText.toLowerCase().includes(q) ? 'flex' : 'none';
-    });
-}
-
-function resetApp() {
-    STATE.followers.clear();
-    STATE.following.clear();
-    STATE.chatStats = {};
-    STATE.hourlyActivity.fill(0);
-}
-
-function exportCSV() {
-    const traitors = [...STATE.following].filter(x => !STATE.followers.has(x));
-    let csv = "Usuario,Estado\n" + traitors.map(u => `${u},No te sigue`).join("\n");
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'instagram_analisis.csv';
-    a.click();
+function fill(id, arr) { document.getElementById(id).innerHTML = arr.map(u => `<div class="list-item"><span>${u}</span></div>`).join(''); }
+function resetS() { S.followers.clear(); S.following.clear(); S.chats = {}; S.hours.fill(0); }
+function view(id) {
+    ['dash','traitors','fans','chats'].forEach(x => document.getElementById('v-'+x).style.display = 'none');
+    document.getElementById('v-'+id).style.display = 'block';
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
 }
 </script>
-
 </body>
 </html>
