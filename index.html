@@ -3,173 +3,185 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>IG ANALYTICS [ULTIMATE_CORE]</title>
+    <title>IG ANALYTICS V3 [DEBUG_MODE]</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
-        :root { --bg: #000; --surface: #111; --primary: #c13584; --text: #e0e0e0; --danger: #ff3b30; --success: #34c759; }
-        body { margin: 0; font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); padding-bottom: 80px; }
-        header { position: sticky; top: 0; z-index: 100; background: rgba(0,0,0,0.9); backdrop-filter: blur(10px); padding: 15px; border-bottom: 1px solid #333; }
-        h1 { margin: 0; font-size: 18px; background: linear-gradient(45deg, #f09433, #dc2743, #bc1888); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        :root { --bg: #050505; --surface: #121212; --primary: #ff3366; --text: #f0f0f0; --success: #00ff88; }
+        body { margin: 0; font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); }
+        header { padding: 15px; background: #000; border-bottom: 1px solid #333; text-align: center; }
+        h1 { margin: 0; font-size: 16px; color: var(--primary); letter-spacing: 1px; }
         
-        .upload-section { padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .btn-box { background: var(--surface); border: 1px solid #333; padding: 20px; border-radius: 12px; text-align: center; position: relative; overflow: hidden; }
-        .btn-box h3 { margin: 0 0 5px 0; font-size: 14px; }
-        .btn-box p { margin: 0; font-size: 11px; color: #666; }
-        input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
-        .card { background: var(--surface); padding: 15px; border-radius: 12px; border: 1px solid #222; }
-        .card.full { grid-column: span 2; }
-        .stat-val { font-size: 24px; font-weight: 800; color: #fff; }
-        .stat-lbl { font-size: 11px; color: #888; text-transform: uppercase; }
+        .upload-area { padding: 20px; }
+        .box { background: var(--surface); border: 2px dashed #444; border-radius: 15px; padding: 40px 20px; text-align: center; position: relative; }
+        input[type=file] { position: absolute; inset: 0; opacity: 0; }
         
-        .tabs { display: flex; gap: 10px; overflow-x: auto; padding: 10px 15px; }
-        .tab { padding: 8px 16px; background: #222; border-radius: 20px; font-size: 13px; white-space: nowrap; }
-        .tab.active { background: var(--text); color: #000; }
+        #debug-log { font-size: 10px; color: #666; padding: 10px; font-family: monospace; max-height: 60px; overflow: hidden; }
+        
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; }
+        .stat-card { background: var(--surface); padding: 15px; border-radius: 12px; border: 1px solid #222; }
+        .val { font-size: 26px; font-weight: bold; display: block; }
+        .lbl { font-size: 10px; color: #888; text-transform: uppercase; }
 
-        .list-item { padding: 12px 15px; border-bottom: 1px solid #222; display: flex; justify-content: space-between; font-size: 14px; }
-        #loading { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; place-items: center; z-index: 999; text-align: center; }
-        .spinner { width: 40px; height: 40px; border: 4px solid #333; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s infinite; margin-bottom: 10px; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        .tabs { display: flex; gap: 10px; overflow-x: auto; padding: 0 15px 10px; }
+        .tab { padding: 8px 15px; background: #222; border-radius: 20px; font-size: 12px; white-space: nowrap; }
+        .tab.active { background: #fff; color: #000; }
+
+        .list-view { padding: 0 15px; display: none; }
+        .item { padding: 12px 0; border-bottom: 1px solid #222; display: flex; justify-content: space-between; font-size: 14px; }
+        
+        #loader { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; place-items: center; z-index: 1000; }
+        .spin { width: 30px; height: 30px; border: 3px solid #333; border-top-color: var(--primary); border-radius: 50%; animation: s 1s infinite; }
+        @keyframes s { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-<header><h1>IG DATA ANALYZER PRO</h1></header>
+<header><h1>IG DATA ANALYZER V3</h1></header>
 
-<div id="loading"><div><div class="spinner"></div><div id="status">Procesando...</div></div></div>
+<div id="loader"><div><div class="spin"></div><p id="l-msg">Procesando...</p></div></div>
 
-<div id="upload-ui" class="upload-section">
-    <div class="btn-box">
-        <h3>📦 SUBIR ARCHIVO .ZIP</h3>
-        <p>Selecciona el ZIP sin descomprimir</p>
-        <input type="file" id="zipInput" accept=".zip">
+<div id="setup">
+    <div class="upload-area">
+        <div class="box">
+            <p>📁 SELECCIONA TU ZIP O CARPETA</p>
+            <span style="font-size: 10px; color: #888;">(Exportación de Instagram 2024-2026)</span>
+            <input type="file" id="mainInput" webkitdirectory directory multiple>
+        </div>
     </div>
-    <div style="text-align:center; color:#444; font-size:12px;">— O —</div>
-    <div class="btn-box">
-        <h3>📂 SELECCIONAR CARPETA</h3>
-        <p>Si ya lo descomprimiste (iOS Archivos)</p>
-        <input type="file" id="folderInput" webkitdirectory directory multiple>
-    </div>
+    <div id="debug-log">Esperando archivos...</div>
 </div>
 
-<div id="app" style="display:none;">
-    <div class="tabs">
-        <div class="tab active" onclick="view('dash')">Resumen</div>
-        <div class="tab" onclick="view('traitors')">No te siguen</div>
-        <div class="tab" onclick="view('fans')">Fans</div>
-        <div class="tab" onclick="view('chats')">Ranking Chats</div>
+<div id="dashboard" style="display:none">
+    <div class="stats-grid">
+        <div class="stat-card"><span class="lbl">Seguidores</span><span id="c-foll" class="val">0</span></div>
+        <div class="stat-card"><span class="lbl">Siguiendo</span><span id="c-fing" class="val">0</span></div>
+        <div class="stat-card"><span class="lbl">No te siguen</span><span id="c-tra" class="val" style="color:var(--primary)">0</span></div>
+        <div class="stat-card"><span class="lbl">Fans</span><span id="c-fans" class="val" style="color:var(--success)">0</span></div>
     </div>
 
-    <div id="v-dash">
-        <div class="grid" id="stats"></div>
-        <div class="card full" style="margin:0 10px;"><canvas id="chart"></canvas></div>
+    <div class="tabs">
+        <div class="tab active" onclick="show('dash')">Resumen</div>
+        <div class="tab" onclick="show('tra')">No te siguen</div>
+        <div class="tab" onclick="show('chats')">Top Chats</div>
     </div>
-    <div id="v-traitors" style="display:none"></div>
-    <div id="v-fans" style="display:none"></div>
-    <div id="v-chats" style="display:none"></div>
+
+    <div id="v-dash" class="list-view" style="display:block">
+        <div class="stat-card" style="margin-top:10px"><canvas id="chart"></canvas></div>
+    </div>
+    <div id="v-tra" class="list-view"></div>
+    <div id="v-chats" class="list-view"></div>
 </div>
 
 <script>
-const S = { followers: new Set(), following: new Set(), chats: {}, hours: Array(24).fill(0) };
-const UI = { 
-    zip: document.getElementById('zipInput'), 
-    folder: document.getElementById('folderInput'),
-    app: document.getElementById('app'), 
-    load: document.getElementById('loading'), 
-    status: document.getElementById('status'),
-    ui: document.getElementById('upload-ui')
+const DATA = { followers: new Set(), following: new Set(), messages: {}, timeline: Array(24).fill(0) };
+const UI = {
+    input: document.getElementById('mainInput'),
+    loader: document.getElementById('loader'),
+    log: document.getElementById('debug-log'),
+    setup: document.getElementById('setup'),
+    dash: document.getElementById('dashboard')
 };
 
-// EVENTOS
-UI.zip.addEventListener('change', async e => handleFiles(e.target.files, true));
-UI.folder.addEventListener('change', async e => handleFiles(e.target.files, false));
-
-async function handleFiles(files, isZip) {
-    UI.load.style.display = 'grid';
-    resetS();
-
-    if (isZip) {
-        const zip = await JSZip.loadAsync(files[0]);
-        const allFiles = Object.keys(zip.files).filter(n => n.endsWith('.json'));
-        for (let path of allFiles) {
-            if (isRelevant(path)) {
-                const txt = await zip.file(path).async('string');
-                processData(JSON.parse(txt), path);
+UI.input.addEventListener('change', async (e) => {
+    const files = e.target.files;
+    if (!files.length) return;
+    
+    UI.loader.style.display = 'grid';
+    
+    // Si es un solo archivo y es ZIP
+    if (files.length === 1 && files[0].name.endsWith('.zip')) {
+        UI.log.innerText = "Abriendo ZIP...";
+        try {
+            const zip = await JSZip.loadAsync(files[0]);
+            const entries = Object.keys(zip.files).filter(f => f.endsWith('.json'));
+            for (let path of entries) {
+                const content = await zip.file(path).async("string");
+                parseJson(JSON.parse(content), path);
             }
-        }
+        } catch (err) { alert("Error con el ZIP: " + err); }
     } else {
-        for (let file of files) {
-            if (file.name.endsWith('.json') && isRelevant(file.webkitRelativePath)) {
-                const txt = await file.text();
-                processData(JSON.parse(txt), file.webkitRelativePath);
+        // Si es selección de carpeta
+        for (let f of files) {
+            if (f.name.endsWith('.json')) {
+                const text = await f.text();
+                parseJson(JSON.parse(text), f.webkitRelativePath || f.name);
             }
         }
     }
-    
+
     render();
-    UI.load.style.display = 'none';
-    UI.ui.style.display = 'none';
-    UI.app.style.display = 'block';
-}
+    UI.loader.style.display = 'none';
+    UI.setup.style.display = 'none';
+    UI.dash.style.display = 'block';
+});
 
-function isRelevant(p) { return p.includes('follower') || p.includes('following') || p.includes('message'); }
-
-function processData(data, path) {
-    const isFoll = path.includes('follower');
-    const isFing = path.includes('following');
-
-    if (isFoll || isFing) {
-        // Soporte para formato Meta 2024/2025/2026
-        const list = Array.isArray(data) ? data : (data.relationships_followers || data.relationships_following || []);
-        list.forEach(item => {
-            if (item.string_list_data) {
-                item.string_list_data.forEach(s => {
-                    if(isFoll) S.followers.add(s.value);
-                    if(isFing) S.following.add(s.value);
+function parseJson(json, path) {
+    const p = path.toLowerCase();
+    
+    // CAZADOR DE SEGUIDORES / SIGUIENDO
+    if (p.includes('follower') || p.includes('following')) {
+        UI.log.innerText = "Analizando: " + p;
+        const target = p.includes('follower') ? DATA.followers : DATA.following;
+        
+        // Buscamos 'string_list_data' en cualquier estructura (Meta 2026)
+        const findNames = (obj) => {
+            if (!obj || typeof obj !== 'object') return;
+            if (obj.string_list_data && Array.isArray(obj.string_list_data)) {
+                obj.string_list_data.forEach(entry => {
+                    if (entry.value) target.add(decodeURIComponent(escape(entry.value)));
                 });
             }
-        });
+            Object.values(obj).forEach(val => findNames(val));
+        };
+        findNames(json);
     }
 
-    if (data.messages) {
-        data.messages.forEach(m => {
-            if (m.sender_name) {
-                S.chats[m.sender_name] = (S.chats[m.sender_name] || 0) + 1;
-                if (m.timestamp_ms) S.hours[new Date(m.timestamp_ms).getHours()]++;
-            }
-        });
+    // CAZADOR DE MENSAJES
+    if (p.includes('message') || p.includes('inbox')) {
+        if (json.messages && Array.isArray(json.messages)) {
+            json.messages.forEach(m => {
+                if (m.sender_name) {
+                    const name = decodeURIComponent(escape(m.sender_name));
+                    DATA.messages[name] = (DATA.messages[name] || 0) + 1;
+                    if (m.timestamp_ms) {
+                        const h = new Date(m.timestamp_ms).getHours();
+                        DATA.timeline[h]++;
+                    }
+                }
+            });
+        }
     }
 }
 
 function render() {
-    const t = [...S.following].filter(x => !S.followers.has(x));
-    const f = [...S.followers].filter(x => !S.following.has(x));
-    document.getElementById('stats').innerHTML = `
-        <div class="card"><div class="stat-lbl">Seguidores</div><div class="stat-val">${S.followers.size}</div></div>
-        <div class="card"><div class="stat-lbl">Siguiendo</div><div class="stat-val">${S.following.size}</div></div>
-        <div class="card"><div class="stat-lbl">No devuelven ❌</div><div class="stat-val" style="color:var(--danger)">${t.length}</div></div>
-        <div class="card"><div class="stat-lbl">Fans (Tú no sigues)</div><div class="stat-val" style="color:var(--success)">${f.length}</div></div>
-    `;
-    fill('v-traitors', t);
-    fill('v-fans', f);
-    const cSorted = Object.entries(S.chats).sort((a,b)=>b[1]-a[1]).map(([n,c])=>`<div class="list-item"><span>${n}</span><span>${c} msgs</span></div>`).join('');
-    document.getElementById('v-chats').innerHTML = cSorted;
+    const traitors = [...DATA.following].filter(x => !DATA.followers.has(x));
+    const fans = [...DATA.followers].filter(x => !DATA.following.has(x));
+
+    document.getElementById('c-foll').innerText = DATA.followers.size;
+    document.getElementById('c-fing').innerText = DATA.following.size;
+    document.getElementById('c-tra').innerText = traitors.length;
+    document.getElementById('c-fans').innerText = fans.length;
+
+    document.getElementById('v-tra').innerHTML = traitors.map(u => `<div class="item"><span>${u}</span> <span style="color:#f36">PERFIL</span></div>`).join('');
+    
+    const chats = Object.entries(DATA.messages).sort((a,b) => b[1] - a[1]);
+    document.getElementById('v-chats').innerHTML = chats.map(([n, c]) => `<div class="item"><span>${n}</span> <span>${c} msgs</span></div>`).join('');
 
     new Chart(document.getElementById('chart'), {
-        type: 'line',
-        data: { labels: [...Array(24).keys()].map(h=>h+'h'), datasets: [{ label:'Actividad', data: S.hours, borderColor: '#c13584', tension: 0.4 }] },
-        options: { plugins: { legend: false }, scales: { y: { display: false } } }
+        type: 'bar',
+        data: {
+            labels: [...Array(24).keys()].map(h => h+'h'),
+            datasets: [{ label: 'Actividad', data: DATA.timeline, backgroundColor: '#ff3366' }]
+        },
+        options: { plugins: { legend: false }, scales: { y: { display: false }, x: { grid: { display: false } } } }
     });
 }
 
-function fill(id, arr) { document.getElementById(id).innerHTML = arr.map(u => `<div class="list-item"><span>${u}</span></div>`).join(''); }
-function resetS() { S.followers.clear(); S.following.clear(); S.chats = {}; S.hours.fill(0); }
-function view(id) {
-    ['dash','traitors','fans','chats'].forEach(x => document.getElementById('v-'+x).style.display = 'none');
-    document.getElementById('v-'+id).style.display = 'block';
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+function show(v) {
+    document.querySelectorAll('.list-view').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+    document.getElementById('v-' + v).style.display = 'block';
     event.target.classList.add('active');
 }
 </script>
