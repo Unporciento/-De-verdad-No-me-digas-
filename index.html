@@ -1,345 +1,119 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>IG ANALYTICS [MAX_CORE]</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        :root {
-            --bg: #050505;
-            --surface: #121212;
-            --surface-2: #1e1e1e;
-            --primary: #00ff88;
-            --secondary: #00d9ff;
-            --danger: #ff3366;
-            --text: #e0e0e0;
-            --text-dim: #888;
-        }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { margin: 0; font-family: 'SF Mono', 'Courier New', monospace; background: var(--bg); color: var(--text); padding-bottom: 80px; }
-        
-        /* HEADER & CONTROLS */
-        header { position: sticky; top: 0; z-index: 100; background: rgba(5,5,5,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid #333; padding: 15px; }
-        h1 { margin: 0; font-size: 16px; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; }
-        
-        .upload-btn-wrapper { position: relative; overflow: hidden; display: inline-block; width: 100%; margin-top: 10px; }
-        .btn { border: 1px solid #333; color: var(--text); background: var(--surface); padding: 12px; border-radius: 8px; font-weight: bold; width: 100%; display: block; text-align: center; cursor: pointer; transition: 0.2s; font-family: inherit; }
-        .btn:active { transform: scale(0.98); }
-        .btn-primary { background: var(--primary); color: #000; border: none; }
-        .btn-danger { background: var(--danger); color: #fff; border: none; margin-top: 10px; }
-        
-        input[type=file] { font-size: 100px; position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-        input[type=search] { width: 100%; padding: 12px; margin-top: 10px; background: var(--surface-2); border: 1px solid #333; color: #fff; border-radius: 8px; font-family: inherit; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instagram ZIP Analyzer</title>
 
-        /* DASHBOARD GRID */
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; }
-        .card { background: var(--surface); padding: 15px; border-radius: 12px; border: 1px solid #222; }
-        .card.full { grid-column: span 2; }
-        .stat-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; }
-        .stat-val { font-size: 24px; font-weight: 700; margin-top: 5px; color: #fff; }
-        .stat-val.bad { color: var(--danger); }
-        .stat-val.good { color: var(--primary); }
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
-        /* LISTS */
-        .section-title { padding: 0 15px; margin-top: 20px; font-size: 14px; color: var(--secondary); font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
-        .list-container { padding: 15px; }
-        .list-item { background: var(--surface); padding: 12px; border-bottom: 1px solid #222; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
-        .list-item:first-child { border-radius: 12px 12px 0 0; }
-        .list-item:last-child { border-radius: 0 0 12px 12px; border-bottom: none; }
-        .badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; background: #333; }
-        .rank-1 { color: gold; }
-        
-        /* TABS */
-        .tabs { display: flex; padding: 0 15px; gap: 10px; overflow-x: auto; margin-top: 10px; }
-        .tab { padding: 8px 16px; background: var(--surface-2); border-radius: 20px; font-size: 12px; white-space: nowrap; cursor: pointer; }
-        .tab.active { background: var(--text); color: #000; }
-
-        #loading { display: none; text-align: center; padding: 20px; color: var(--secondary); }
-        canvas { max-height: 200px; }
-    </style>
+<style>
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #0b0b0b;
+    color: #fff;
+}
+header {
+    padding: 15px;
+    text-align: center;
+    font-weight: 700;
+    background: #111;
+}
+input {
+    width: 100%;
+    padding: 16px;
+    background: #1a1a1a;
+    border: none;
+    color: #fff;
+    font-size: 16px;
+}
+section {
+    padding: 15px;
+}
+.card {
+    background: #1b1b1b;
+    border-radius: 14px;
+    padding: 15px;
+    margin-bottom: 12px;
+}
+.row {
+    display: flex;
+    justify-content: space-between;
+}
+</style>
 </head>
+
 <body>
 
-<header>
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h1>IG ANALYTICS_MAX</h1>
-        <span id="file-count" style="font-size:10px; color:var(--text-dim)">waiting_data...</span>
-    </div>
-    
-    <div class="upload-btn-wrapper">
-        <button class="btn btn-primary">📂 CARGAR JSONs (Multiselect)</button>
-        <input type="file" id="files" multiple accept=".json">
-    </div>
-    <input type="search" id="search" placeholder="🔍 Filtrar usuarios..." disabled>
-    
-    <div class="tabs" id="tabs-nav" style="display:none;">
-        <div class="tab active" onclick="switchTab('dash')">Dashboard</div>
-        <div class="tab" onclick="switchTab('traitors')">No te siguen 😡</div>
-        <div class="tab" onclick="switchTab('fans')">Fans (Tú no sigues)</div>
-        <div class="tab" onclick="switchTab('chats')">Ranking Chat 💬</div>
-    </div>
-</header>
+<header>📦 Instagram ZIP Analyzer</header>
 
-<div id="loading">⚡ PROCESANDO DATOS EN NÚCLEO...</div>
+<input type="file" id="zipInput" accept=".zip">
 
-<div id="view-dash">
-    <div class="grid" id="stats-grid">
-        </div>
-    <div class="card full" style="margin: 0 15px;">
-        <div class="stat-label">Actividad por Hora (Mensajes)</div>
-        <canvas id="activityChart"></canvas>
-    </div>
-</div>
-
-<div id="view-traitors" style="display:none;" class="list-container"></div>
-<div id="view-fans" style="display:none;" class="list-container"></div>
-<div id="view-chats" style="display:none;" class="list-container"></div>
-
-<div style="padding:15px;" id="export-area" style="display:none;">
-    <button class="btn btn-danger" onclick="exportCSV()" id="btn-export" style="display:none;">📥 EXPORTAR DATA (CSV)</button>
-</div>
+<section id="output"></section>
 
 <script>
-// --- CORE LOGIC ---
-const STATE = {
-    followers: new Set(),
-    following: new Set(),
-    chatStats: {}, // { username: count }
-    hourlyActivity: new Array(24).fill(0),
-    filesProcessed: 0,
-    totalMessages: 0
-};
+const output = document.getElementById("output");
 
-const UI = {
-    files: document.getElementById('files'),
-    search: document.getElementById('search'),
-    loading: document.getElementById('loading'),
-    tabs: document.getElementById('tabs-nav'),
-    views: {
-        dash: document.getElementById('view-dash'),
-        traitors: document.getElementById('view-traitors'),
-        fans: document.getElementById('view-fans'),
-        chats: document.getElementById('view-chats')
-    }
-};
+document.getElementById("zipInput").addEventListener("change", async e => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-// Event Listeners
-UI.files.addEventListener('change', handleFiles);
-UI.search.addEventListener('input', (e) => filterLists(e.target.value));
+    output.innerHTML = "<div class='card'>⏳ Analizando ZIP completo...</div>";
 
-async function handleFiles(e) {
-    const files = [...e.target.files];
-    if (files.length === 0) return;
+    const zip = await JSZip.loadAsync(file);
 
-    resetState();
-    UI.loading.style.display = 'block';
-    document.getElementById('file-count').innerText = `Analizando ${files.length} archivos...`;
+    let followers = new Set();
+    let following = new Set();
+    let chats = {};
 
-    // Procesamiento asíncrono para no congelar la UI
-    setTimeout(() => {
-        const promises = files.map(file => readFile(file));
-        Promise.all(promises).then(() => {
-            finalizeProcessing();
-        });
-    }, 100);
-}
+    const files = Object.keys(zip.files);
 
-function readFile(file) {
-    return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const json = JSON.parse(e.target.result);
-                detectAndIngest(json, file.name);
-            } catch (err) {
-                console.error("Error parseando " + file.name);
+    for (const path of files) {
+        if (!path.endsWith(".json")) continue;
+
+        try {
+            const text = await zip.files[path].async("string");
+            const data = JSON.parse(text);
+
+            if (data.relationships_followers) {
+                data.relationships_followers.forEach(u =>
+                    followers.add(u.string_list_data[0].value)
+                );
             }
-            resolve();
-        };
-        reader.readAsText(file);
-    });
-}
 
-function detectAndIngest(json, filename) {
-    // 1. Detectar Followers
-    if (filename.includes('followers') || (Array.isArray(json) && json[0]?.string_list_data)) {
-        // Formato nuevo o array directo
-        const list = Array.isArray(json) ? json : (json.relationships_followers || []);
-        list.forEach(u => {
-            try { STATE.followers.add(u.string_list_data[0].value); } catch{}
-        });
-    }
-    
-    // 2. Detectar Following
-    else if (filename.includes('following') || json.relationships_following) {
-        const list = json.relationships_following || [];
-        list.forEach(u => {
-            try { STATE.following.add(u.string_list_data[0].value); } catch{}
-        });
-    }
-    
-    // 3. Detectar Mensajes (Inbox)
-    else if (json.messages && json.participants) {
-        // Es un archivo de chat
-        const participants = json.participants.map(p => p.name);
-        
-        json.messages.forEach(m => {
-            if (m.sender_name) {
-                // Ranking Chat
-                STATE.chatStats[m.sender_name] = (STATE.chatStats[m.sender_name] || 0) + 1;
-                
-                // Actividad Temporal
-                const date = new Date(m.timestamp_ms);
-                STATE.hourlyActivity[date.getHours()]++;
-                STATE.totalMessages++;
+            if (data.relationships_following) {
+                data.relationships_following.forEach(u =>
+                    following.add(u.string_list_data[0].value)
+                );
             }
-        });
+
+            if (data.messages) {
+                data.messages.forEach(m => {
+                    chats[m.sender_name] = (chats[m.sender_name] || 0) + 1;
+                });
+            }
+        } catch {}
     }
-    STATE.filesProcessed++;
-}
 
-function resetState() {
-    STATE.followers.clear();
-    STATE.following.clear();
-    STATE.chatStats = {};
-    STATE.hourlyActivity.fill(0);
-    STATE.totalMessages = 0;
-    STATE.filesProcessed = 0;
-    UI.search.value = '';
-}
+    const notFollowingBack = [...following].filter(x => !followers.has(x));
+    const topChat = Object.entries(chats).sort((a,b)=>b[1]-a[1])[0];
 
-function finalizeProcessing() {
-    UI.loading.style.display = 'none';
-    UI.tabs.style.display = 'flex';
-    UI.search.disabled = false;
-    document.getElementById('file-count').innerText = `Data cargada: ${STATE.filesProcessed} archivos`;
-    document.getElementById('btn-export').style.display = 'block';
-
-    renderDashboard();
-    renderLists();
-    renderChart();
-}
-
-function renderDashboard() {
-    const notFollowingBack = [...STATE.following].filter(x => !STATE.followers.has(x)).length;
-    const fans = [...STATE.followers].filter(x => !STATE.following.has(x)).length;
-    const topTalker = Object.entries(STATE.chatStats).sort((a,b)=>b[1]-a[1])[0];
-
-    const grid = document.getElementById('stats-grid');
-    grid.innerHTML = `
+    output.innerHTML = `
         <div class="card">
-            <div class="stat-label">Seguidores</div>
-            <div class="stat-val">${STATE.followers.size}</div>
+            <h3>📊 Resumen</h3>
+            <div class="row"><span>Seguidores</span><span>${followers.size}</span></div>
+            <div class="row"><span>Siguiendo</span><span>${following.size}</span></div>
+            <div class="row"><span>No te siguen</span><span>${notFollowingBack.length}</span></div>
+            <div class="row"><span>Top contacto</span><span>${topChat ? topChat[0] : "—"}</span></div>
         </div>
+
         <div class="card">
-            <div class="stat-label">Seguidos</div>
-            <div class="stat-val">${STATE.following.size}</div>
-        </div>
-        <div class="card">
-            <div class="stat-label">No te siguen 🤬</div>
-            <div class="stat-val bad">${notFollowingBack}</div>
-        </div>
-        <div class="card">
-            <div class="stat-label">Fans 🥰</div>
-            <div class="stat-val good">${fans}</div>
-        </div>
-        <div class="card full">
-            <div class="stat-label">Top Conversación</div>
-            <div class="stat-val" style="font-size:18px">${topTalker ? topTalker[0] : '—'}</div>
-            <div class="stat-label">${topTalker ? topTalker[1] + ' mensajes' : ''}</div>
+            <h3>❌ No te siguen</h3>
+            ${notFollowingBack.slice(0,100).map(n => `<div>${n}</div>`).join("")}
         </div>
     `;
-}
-
-function renderLists() {
-    // Traitors
-    const traitors = [...STATE.following].filter(x => !STATE.followers.has(x));
-    UI.views.traitors.innerHTML = traitors.map(u => 
-        `<div class="list-item searchable"><span>${u}</span> <span class="badge">TRAITOR</span></div>`
-    ).join('');
-
-    // Fans
-    const fans = [...STATE.followers].filter(x => !STATE.following.has(x));
-    UI.views.fans.innerHTML = fans.map(u => 
-        `<div class="list-item searchable"><span>${u}</span> <span class="badge" style="background:var(--primary);color:#000">FAN</span></div>`
-    ).join('');
-
-    // Chats
-    const sortedChats = Object.entries(STATE.chatStats).sort((a,b) => b[1] - a[1]);
-    UI.views.chats.innerHTML = sortedChats.map(([name, count], index) => 
-        `<div class="list-item searchable">
-            <span><span style="color:var(--text-dim)">#${index+1}</span> ${name}</span>
-            <span class="badge">${count} msgs</span>
-        </div>`
-    ).join('');
-}
-
-let chartInstance = null;
-function renderChart() {
-    const ctx = document.getElementById('activityChart').getContext('2d');
-    if (chartInstance) chartInstance.destroy();
-    
-    chartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: [...Array(24).keys()].map(h => `${h}h`),
-            datasets: [{
-                label: 'Mensajes',
-                data: STATE.hourlyActivity,
-                backgroundColor: '#00ff88',
-                borderRadius: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { display: false } },
-            scales: {
-                x: { ticks: { color: '#888' }, grid: { display: false } },
-                y: { display: false }
-            }
-        }
-    });
-}
-
-// --- UTILS ---
-
-function switchTab(tabName) {
-    // Hide all
-    Object.values(UI.views).forEach(el => el.style.display = 'none');
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    
-    // Show selected
-    UI.views[tabName].style.display = 'block';
-    
-    // Highlight tab (simple logic based on text, could be better ID based)
-    // Quick fix for tab highlight
-    const index = ['dash', 'traitors', 'fans', 'chats'].indexOf(tabName);
-    document.querySelectorAll('.tab')[index].classList.add('active');
-}
-
-function filterLists(query) {
-    query = query.toLowerCase();
-    const items = document.querySelectorAll('.searchable');
-    items.forEach(item => {
-        const text = item.innerText.toLowerCase();
-        item.style.display = text.includes(query) ? 'flex' : 'none';
-    });
-}
-
-function exportCSV() {
-    const traitors = [...STATE.following].filter(x => !STATE.followers.has(x));
-    let csvContent = "data:text/csv;charset=utf-8,Usuario,Estado\n";
-    traitors.forEach(u => csvContent += `${u},No te sigue\n`);
-    
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "instagram_analysis_max.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
+});
 </script>
 
 </body>
